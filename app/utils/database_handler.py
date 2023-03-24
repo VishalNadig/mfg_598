@@ -1,5 +1,4 @@
-from sqlalchemy import create_engine, Table, Column, Integer, MetaData, inspect, text
-from sqlalchemy_utils import create_database, database_exists, drop_database
+from sqlalchemy import create_engine, MetaData
 import yaml
 from cryptography.fernet import Fernet
 
@@ -16,7 +15,16 @@ METADATA = MetaData()
 URL = f"mysql+pymysql://{USER}:{PASSWORD}@{HOSTNAME}/{DATABASE}"
 
 
-def encrypt_data(key=CONFIG['database_creds']['key'], password = ""):
+def encrypt_data(key: str =CONFIG['database_creds']['key'], password: str = "") -> dict:
+    """Encrypt the sensitive credentials such as API key, SECRET key and Google Auth Key.
+
+    Args:
+        key (str, optional): The fernet key generated once at the start. Defaults to CONFIG['database_creds']['key'].
+        password (str, optional): The password to encrypt. Defaults to "".
+
+    Returns:
+        dict: Encrypted credentials dictionary 200 if successful. 404 If the password is wrong.
+    """
     if password != "":
         fernet = Fernet(key)
         return {"password": fernet.encrypt(password.encode())}
@@ -24,7 +32,16 @@ def encrypt_data(key=CONFIG['database_creds']['key'], password = ""):
         return {404: "Error password not found!"}
 
 
-def decrypt_data(key = CONFIG['database_creds']['key'], password = ""):
+def decrypt_data(key: str = CONFIG['database_creds']['key'], password: str = "") -> dict:
+    """Decrypt the sensitive credentials to use for API call authentication.
+
+    Args:
+        key (str, optional): The fernet key generated once at the start. Defaults to CONFIG['database_creds']['key'].
+        password (str, optional): The password to decrypt. Defaults to "".
+
+    Returns:
+        dict: Decrypted credentials dictionary 200 if successful. 404 If the password is wrong.
+    """
     if password != "":
         fernet = Fernet(key)
         return {"password": fernet.decrypt(password).decode()}
@@ -33,17 +50,31 @@ def decrypt_data(key = CONFIG['database_creds']['key'], password = ""):
 
 
 def get_credentials(username: str = "", first_name: str = "", last_name: str = "") -> tuple:
-    engine = create_engine(URL)
-    if username == "":
-        username = first_name.title() + " " + last_name.title()
-        encrypted_api_key, encrypted_secret_key =  engine.connect().execute(f"""SELECT api_key, secret_key FROM USERS WHERE Username = '{username}'""").fetchall()[0]
-        api_key = decrypt_data(password=encrypted_api_key)['password']
-        secret_key = decrypt_data(password=encrypted_secret_key)['password']
-    else:
-        encrypted_api_key, encrypted_secret_key =  engine.connect().execute(f"""SELECT api_key, secret_key FROM USERS WHERE Username = '{username}'""").fetchall()[0]
-        api_key = decrypt_data(password=encrypted_api_key)['password']
-        secret_key = decrypt_data(password=encrypted_secret_key)['password']
-    return api_key,secret_key
+    """Fetch the use credentials from the database.
+
+    Args:
+        username (str, optional): The usename of the user. Defaults to "".
+        first_name (str, optional): The first name of the user. Pass this argument in case the username of the user is not known. Defaults to "".
+        last_name (str, optional): The last name of the user. Pass this argument in case the username of the user is not known. Defaults to "".
+
+    Returns:
+        tuple: Returns the tuple of decrypted API key and secret key of the user for API calls authentication.
+        Exception: Returns an exception in case the code execution fails.
+    """
+    try:
+        engine = create_engine(URL)
+        if username == "":
+            username = first_name.title() + " " + last_name.title()
+            encrypted_api_key, encrypted_secret_key =  engine.connect().execute(f"""SELECT api_key, secret_key FROM USERS WHERE Username = '{username}'""").fetchall()[0]
+            api_key = decrypt_data(password=encrypted_api_key)['password']
+            secret_key = decrypt_data(password=encrypted_secret_key)['password']
+        else:
+            encrypted_api_key, encrypted_secret_key =  engine.connect().execute(f"""SELECT api_key, secret_key FROM USERS WHERE Username = '{username}'""").fetchall()[0]
+            api_key = decrypt_data(password=encrypted_api_key)['password']
+            secret_key = decrypt_data(password=encrypted_secret_key)['password']
+        return api_key,secret_key
+    except Exception:
+        return Exception
 
 
 def add_user(
@@ -53,231 +84,120 @@ def add_user(
     secret_key: str = "",
     email: str = "",
     google_auth_key: str = "",
-) -> None:
+) -> dict:
     """Add API key and the secret key for a new user. If the user already exists. Return exception.
 
     Args:
         first_name (str, optional): First name of the user. Defaults to "".
         last_name (str, optional): Last name of the user. Defaults to "".
-        api_key (str, optional): API key of the user.
-        secret_key (str, optional): API secret of the user.
+        api_key (str, optional): API key of the user. Defaults to "".
+        secret_key (str, optional): API secret of the user. Defaults to "".
+        email (str, optional): Email of the user. Defaults to "".
+        google_auth_key (str, optional): The google auth key of the user. Defaults to "".
+
+    Returns:
+        dict: Returns the tuple of decrypted API key and secret key of the user for API calls authentication.
+        Exception: Returns exception if failure due to unknown reasons.
     """
-    user = first_name + last_name
-    user = user.lower()
-    user = user.replace(" ", "")
-    dict_update = CONFIG
+    user = first_name.title() + " " + last_name.title()
     engine = create_engine(URL)
+    connection = engine.connect()
     encrypted_api_key = encrypt_data(password=api_key)['password'].decode("utf-8")
     encrypted_secret_key = encrypt_data(password=secret_key)['password'].decode("utf-8")
     encrypted_google_auth_key = encrypt_data(password=google_auth_key)['password'].decode("utf-8")
-    dict_dump = {
-        "username": first_name.title() + " " + last_name.title(),
-        "email": email,
-        "api_key": api_key,
-        "secret_key": secret_key,
-        "google_auth_key": google_auth_key,
-    }
-    if user not in dict_update["trading"]["accounts"]:
-        dict_update["trading"]["accounts"][user] = dict_dump
-        with open(CONFIG_FILE, "w", encoding="utf-8") as file:
-            yaml.safe_dump(dict_update, file)
-
-        engine.connect().execute(f"""INSERT INTO trading_bot.users (Username, email, api_key, secret_key, google_auth_key)
+    try:
+        if user not in connection.execute(f""" SELECT Username from Users where Username = '{user}';""").fetchone()[0]:
+            engine.connect().execute(f"""INSERT INTO trading_bot.users (Username, email, api_key, secret_key, google_auth_key)
     VALUES ('{first_name.title() + " " + last_name.title()}', '{email}', '{encrypted_api_key}', '{encrypted_secret_key}', '{encrypted_google_auth_key}');""")
-        return {200: "User added!"}
-    else:
-        return {404: "Error user already present!"}
+            return {200: "User added!"}
+        else:
+            return {404: "Error user already present!"}
+    except Exception:
+        return Exception
 
-def update_user(first_name: str = "",
+def update_user(username: str = "",
+    first_name: str = "",
     last_name: str = "",
     api_key: str = "",
     secret_key: str = "",
     email: str = "",
-    google_auth_key: str = "",):
-    user = first_name.title() + " " + last_name.title()
+    google_auth_key: str = "",) -> dict:
+    """Update the user credentials in the database.
+
+    Args:
+        username (str, optional): The username of the user. Defaults to "".
+        first_name (str, optional): The first name of the user Pass this argument if the username of the user is not known. Defaults to "".
+        last_name (str, optional): The last name of the users. Pass this argument if the username of the user is not known. Defaults to "".
+        api_key (str, optional): The API key of the user. Defaults to "".
+        secret_key (str, optional): The secret key of the user. Defaults to "".
+        email (str, optional): The email ID of the user. Defaults to "".
+        google_auth_key (str, optional): The google auth key of the user. Defaults to "".
+
+    Returns:
+        dict: 200 if updating the credentials was successful. 404 if the update failed or the user was not found.
+    """
+    engine = create_engine(URL)
+    connection = engine.connect()
+    if username == "":
+        user = first_name.title() + " " + last_name.title()
+    else:
+        user = username
     encrypted_api_key = encrypt_data(password=api_key)['password'].decode("utf-8")
     encrypted_secret_key = encrypt_data(password=secret_key)['password'].decode("utf-8")
-    dict_update = CONFIG
-    dict_dump = {
-        "username": first_name.title() + " " + last_name.title(),
-        "email": email,
-        "api_key": api_key,
-        "secret_key": secret_key,
-        "google_auth_key": google_auth_key,
-    }
-    if user not in dict_update["trading"]["accounts"]:
-        return {404: "Error user not present!"}
+    encrypted_google_auth_key = encrypt_data(password=google_auth_key)['password'].decode("utf-8")
+    if user == connection.execute(f"""SELECT Username from USERS WHERE Username = '{user}'""").fetchone()[0]:
+        if encrypted_api_key != "" and encrypted_secret_key != "" and encrypted_google_auth_key != "" and email != "":
+            connection.execute(f"""UPDATE users SET api_key = '{encrypted_api_key}', secret_key = '{encrypted_secret_key}', google_auth_key = '{encrypted_google_auth_key}', email = '{email}' WHERE Username = '{user}';""")
+        elif encrypted_api_key != "" and encrypted_api_key != connection.execute(f""" SELECT API_KEY FROM USERS WHERE Username = '{user}' """).fetchone()[0]:
+            connection.execute(f"""UPDATE users SET api_key = '{encrypted_api_key}' WHERE Username = '{user}';""")
+            return {200: "User api_key Updated!"}
+        elif encrypted_secret_key != "" and encrypted_secret_key != connection.execute(f""" SELECT SECRET_KEY FROM USERS WHERE Username = '{user}' """).fetchone()[0]:
+            connection.execute(f"""UPDATE users SET secret_key = '{encrypted_secret_key}' WHERE Username = '{user}';""")
+            return {200: "User secret_key Updated!"}
+        elif encrypted_google_auth_key != "" and encrypted_google_auth_key != connection.execute(f"""SELECT GOOGLE_AUTH_KEY FROM USERS WHERE Username = '{user}'""").fetchone()[0]:
+            connection.execute(f"""UPDATE users SET google_auth_key = '{encrypted_google_auth_key}' WHERE Username = '{user}';""")
+            return {200: "User google_auth_key Updated!"}
+        elif email != "" and email != connection.execute(f"""SELECT ENAUL FROM USERS WHERE Username = {user}""").fetchone()[0]:
+            connection.execute(f"""UPDATE users SET email = '{email}' WHERE Username = '{user}';""")
+            return {200: "User email Updated!"}
+        else:
+            return {400: "User Already Present!"}
     else:
-        dict_update["trading"]["accounts"][user] = dict_dump
-        with open(CONFIG_FILE, "w", encoding="utf-8") as file:
-            yaml.safe_dump(dict_update, file)
-        engine = create_engine(URL)
-        engine.connect().execute(f"""UPDATE users SET api_key = '{encrypted_api_key}', secret_key = '{encrypted_secret_key}' WHERE Username = {user};""")
-        return {200: "User updated!"}
+        return {404: "User not Found!"}
 
 
-def delete_user(first_name: str = "", last_name: str = "", user: str = ""):
+def delete_user(username: str = "", first_name: str = "", last_name: str = "") -> dict:
+    """Delete a user from the database.
+
+    Args:
+        username (str, optional): The username of the user. Defaults to "".
+        first_name (str, optional): The first name of the user Pass this argument if the username of the user is not known. Defaults to "".
+        last_name (str, optional): The last name of the users. Pass this argument if the username of the user is not known. Defaults to "".
+
+    Returns:
+        dict: 200 if deleting the user was successful. 404 if the delete failed or the user was not found.
+    """
     engine = create_engine(URL)
-    if user == "":
-        user = first_name + last_name
-        user = user.lower()
-        user = user.replace(" ", "")
+    if username == "":
         user = first_name.title() + " " + last_name.title()
         print(user)
-        print(engine.connect().execute(f"""DELETE FROM users WHERE username = '{user}';"""))
+        connection = engine.connect()
+        print(connection.execute(f"""DELETE FROM users WHERE username = '{user}';"""))
+        max_id = connection.execute(f"""SELECT MAX(Id) FROM users;""")
+        connection.execute(f"""ALTER TABLE USERS AUTO_INCREMENT={max_id};""")
         return {200: "User deleted!"}
     else:
-        print(user)
-        engine.connect().execute(f"""DELETE FROM users WHERE username = '{user}';""")
+        print(username)
+        connection.execute(f"""DELETE FROM users WHERE username = '{username}';""")
+        max_id = connection.execute(f"""SELECT MAX(Id) FROM users;""")
+        connection.execute(f"""ALTER TABLE USERS AUTO_INCREMENT={max_id};""")
         return {200: "User deleted!"}
 
-
-def create_database_function(database: str):
-    try:
-        engine = create_engine(URL)
-        connection = engine.connect()
-        if not database_exists(URL+f"/{database}"):
-            connection.execute(create_database(URL+f"/{database}"))
-            return {"Ok": "Database Created!"}
-        else:
-            return {"Already Exists!": "Database Already Exists!"}
-    except Exception as exception:
-        return(None, exception)
-
-def delete_database_function(database: str):
-    try:
-        engine = create_engine(URL)
-        connection = engine.connect()
-        if database_exists(URL+f"/{database}"):
-            value = connection.execute(drop_database(URL+f"/{database}"))
-            if value is None:
-                return({"Ok": "Database Deleted!"})
-        else:
-            return({"Doesn't Exist!": "Database doesn't Exist!"})
-    except Exception as exception:
-        return(exception)
-
-def create_tables(database: str,*table_names: str):
-    try:
-        engine = create_engine(URL+f"/{database}", echo= True)
-        inspector = inspect(engine)
-        if database_exists(URL+f"/{database}"):
-            for table_name in table_names:
-                if table_name not in inspector.get_table_names():
-                    table_name  = Table(
-                    f"{table_name}", METADATA,
-                    Column("Id", Integer, primary_key = True))
-                    table_name.create(bind=engine)
-                else:
-                    return("Table already exists!")
-        else:
-            return({"Error!": "Database Does not exist!"})
-    except Exception as exception:
-        return exception
-
-def delete_tables(database: str, *table_names: str):
-    try:
-        engine = create_engine(URL+f"/{database}")
-        inspector = inspect(engine)
-        if database_exists(URL+f"/{database}"):
-            for table in table_names:
-                if table in inspector.get_table_names():
-                    table = Table(f"{table}", MetaData(bind=engine), autoload=True, autoload_with=engine)
-                    table.drop(bind = engine)
-                else:
-                    return("Tables don't exist!")
-        else:
-            return("database doesn't exist!")
-    except Exception as exception:
-        return exception
-
-def insert_columns(database: str, table_name: str,  column_name: str, datatype: str, size: str, command: str):
-    try:
-        engine = create_engine(URL+f"/{database}")
-        inpsector = inspect(engine)
-        command = str(command)
-        command.lower()
-        if database_exists(URL+f"/{database}"):
-            if table_name in inpsector.get_table_names():
-                command = text(f"ALTER TABLE {table_name} ADD {column_name} {datatype}({size}) {command}")
-                engine.execute(command)
-                return("Successfully inserted columns!")
-    except Exception as exception:
-        return(exception)
-        #         if len(order) > 0 and order == "first":
-        #             command = text(f"ALTER TABLE {table_name} ADD {column_name} {datatype}({size}) {order}")
-        #         else:
-        #             return{"Error":"Invalid order!"}
-        #         if len(column) > 0 and order == "after":
-        #             command = text(f"ALTER TABLE {table_name} ADD {column_name} {datatype}({size}) {order} {column}")
-        #     else:
-        #         return {"Error":"Table does not exist!"}
-        # else:
-        #     return{"Error":"Database does not exist!"}
-
-def delete_columns(database: str, table_name: str, column_name: str):
-
-    try:
-        engine = create_engine(URL+f"/{database}")
-        inspector = inspect(engine)
-        if database_exists(URL+f"/{database}"):
-            if table_name in inspector.get_table_names():
-                command = f"ALTER TABLE {table_name} DROP COLUMN {column_name}"
-                engine.execute(command)
-            else:
-                return{"Error": "Table does not exist!"}
-        else:
-            return{"Error": "Database does not exist!"}
-    except Exception as exception:
-        return exception
-
-def modify_column(database: str, table_name: str, column_name: str, command: str):
-    try:
-        engine = create_engine(URL+f"/{database}")
-        inspector = inspect(engine)
-        if database_exists(URL+f"{database}"):
-            if table_name in inspector.get_table_names():
-                    command = f"ALTER TABLE {table_name} MODIFY {column_name} {command}"
-                    engine.execute(command)
-            else:
-                return("table doesn't exist")
-        else:
-            return("Database doesn't exist")
-    except Exception as exception:
-        return exception
-
-def inspect_columns(database: str, table, *column: str):
-    try:
-        engine = create_engine(URL+ f"/{database}")
-        inspector = inspect(engine)
-        table = Table(f"{table}", MetaData(bind=engine), autoload=True, autoload_with=engine)
-        if database_exists(URL+f"/{database}"):
-            if table in inspector.get_table_names():
-                return engine.execute(f"SHOW COLUMNS IN {table}").fetchall()
-            elif table in inspector.get_table_names() and len(column) > 0:
-                return engine.execute(f"SELECT * FROM {column}").fetchall()
-            else:
-                return("Table doesn't Exist!")
-        else:
-            return("Database doesn't exist")
-    except Exception as exception:
-        return exception
-
-def query(database: str, table_name: str, filter_condition: str = ""):
-    try:
-        engine = create_engine(URL+ f"/{database}")
-        inspector = inspect(engine)
-        table = Table(f"{table_name}", MetaData(bind=engine), autoload=True, autoload_with=engine)
-        if database_exists(URL+f"/{database}"):
-            if table in inspector.get_table_names():
-                return(engine.execute(f"SELECT * FROM {table}").fetchall())
-    except Exception as exception:
-        return exception
 
 if __name__ == '__main__':
     # create_tables("trading_bot", "users")
-    print(add_user("Shantha", "Krishnamurthy", "AKASDWASDASDASD", "ASWQROQW11232345", "shanthahurali", "ASDDWEQ124FDGHTSAWQWERTY"))
-    print(update_user("Shantha", "Krishnamurthy", "123455ADAWRWR", "ASDA1324531"))
+    # print(add_user("Shantha", "Krishnamurthy", "AKASDWASDASDASD", "ASWQROQW11232345", "shanthahurali", "ASDDWEQ124FDGHTSAWQWERTY"))
+    print(update_user("Shantha", "Krishnamurthy", "123455ADAWRWR", "ASDA1324531", "", "ASDTWERTEWTWET123123123123"))
     # print(get_credentials(username="Shantha Krishnamurthy"))
     # print(delete_user(user="Shantha Krishnamurthy"))
 

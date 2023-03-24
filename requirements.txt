@@ -1,3 +1,12 @@
 sqlalchemy
-sqlalchemy-utils
-argon2-cffi
+argparse
+csv
+hashlib
+hmac
+pandas
+requests
+yaml
+matplotlib
+tradingview_ta
+fastapi
+uvicorn
