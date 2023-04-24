@@ -63,16 +63,21 @@ def get_credentials(username: str = "", first_name: str = "", last_name: str = "
     """
     try:
         engine = create_engine(URL)
-        if username == "":
-            username = first_name.title() + " " + last_name.title()
-            encrypted_api_key, encrypted_secret_key =  engine.connect().execute(f"""SELECT api_key, secret_key FROM USERS WHERE Username = '{username}'""").fetchall()[0]
-            api_key = decrypt_data(password=encrypted_api_key)['password']
-            secret_key = decrypt_data(password=encrypted_secret_key)['password']
+
+        if first_name.title() + " " + last_name.title() in engine.connect().execute("SELECT USERNAME FROM TRADING_BOT.USERS;").fetchall()[0][0]:
+            if username == "":
+                username = first_name.title() + " " + last_name.title()
+
+                encrypted_api_key, encrypted_secret_key =  engine.connect().execute(f"""SELECT api_key, secret_key FROM USERS WHERE Username = '{username}'""").fetchall()[0]
+                api_key = decrypt_data(password=encrypted_api_key)['password']
+                secret_key = decrypt_data(password=encrypted_secret_key)['password']
+            else:
+                encrypted_api_key, encrypted_secret_key =  engine.connect().execute(f"""SELECT api_key, secret_key FROM USERS WHERE Username = '{username}'""").fetchall()[0]
+                api_key = decrypt_data(password=encrypted_api_key)['password']
+                secret_key = decrypt_data(password=encrypted_secret_key)['password']
+            return api_key,secret_key
         else:
-            encrypted_api_key, encrypted_secret_key =  engine.connect().execute(f"""SELECT api_key, secret_key FROM USERS WHERE Username = '{username}'""").fetchall()[0]
-            api_key = decrypt_data(password=encrypted_api_key)['password']
-            secret_key = decrypt_data(password=encrypted_secret_key)['password']
-        return api_key,secret_key
+            return {404: "User Not Found!"}
     except Exception:
         return Exception
 
@@ -106,12 +111,17 @@ def add_user(
     encrypted_secret_key = encrypt_data(password=secret_key)['password'].decode("utf-8")
     encrypted_google_auth_key = encrypt_data(password=google_auth_key)['password'].decode("utf-8")
     try:
-        if user not in connection.execute(f""" SELECT Username from Users where Username = '{user}';""").fetchone()[0]:
-            engine.connect().execute(f"""INSERT INTO trading_bot.users (Username, email, api_key, secret_key, google_auth_key)
-    VALUES ('{first_name.title() + " " + last_name.title()}', '{email}', '{encrypted_api_key}', '{encrypted_secret_key}', '{encrypted_google_auth_key}');""")
-            return {200: "User added!"}
+        if connection.execute(f""" SELECT Username from Users where Username = '{user}';""").fetchone() is not None:
+            if user not in connection.execute(f""" SELECT Username from Users where Username = '{user}';""").fetchone()[0]:
+                engine.connect().execute(f"""INSERT INTO trading_bot.users (Username, email, api_key, secret_key, google_auth_key)
+        VALUES ('{first_name.title() + " " + last_name.title()}', '{email}', '{encrypted_api_key}', '{encrypted_secret_key}', '{encrypted_google_auth_key}');""")
+                return {200: "User added!"}
+            else:
+                return {404: "Error user already present!"}
         else:
-            return {404: "Error user already present!"}
+            engine.connect().execute(f"""INSERT INTO trading_bot.users (Username, email, api_key, secret_key, google_auth_key)
+        VALUES ('{first_name.title() + " " + last_name.title()}', '{email}', '{encrypted_api_key}', '{encrypted_secret_key}', '{encrypted_google_auth_key}');""")
+            return {200: "User added!"}
     except Exception:
         return Exception
 
@@ -144,10 +154,12 @@ def update_user(username: str = "",
         user = username
     encrypted_api_key = encrypt_data(password=api_key)['password'].decode("utf-8")
     encrypted_secret_key = encrypt_data(password=secret_key)['password'].decode("utf-8")
+    print(encrypt_data(password=google_auth_key)['password'].decode("utf-8"))
     encrypted_google_auth_key = encrypt_data(password=google_auth_key)['password'].decode("utf-8")
     if user == connection.execute(f"""SELECT Username from USERS WHERE Username = '{user}'""").fetchone()[0]:
         if encrypted_api_key != "" and encrypted_secret_key != "" and encrypted_google_auth_key != "" and email != "":
             connection.execute(f"""UPDATE users SET api_key = '{encrypted_api_key}', secret_key = '{encrypted_secret_key}', google_auth_key = '{encrypted_google_auth_key}', email = '{email}' WHERE Username = '{user}';""")
+            return {200: "User Updated"}
         elif encrypted_api_key != "" and encrypted_api_key != connection.execute(f""" SELECT API_KEY FROM USERS WHERE Username = '{user}' """).fetchone()[0]:
             connection.execute(f"""UPDATE users SET api_key = '{encrypted_api_key}' WHERE Username = '{user}';""")
             return {200: "User api_key Updated!"}
@@ -180,29 +192,35 @@ def delete_user(username: str = "", first_name: str = "", last_name: str = "") -
     engine = create_engine(URL)
     if username == "":
         user = first_name.title() + " " + last_name.title()
-        print(user)
-        connection = engine.connect()
-        print(connection.execute(f"""DELETE FROM users WHERE username = '{user}';"""))
-        max_id = connection.execute(f"""SELECT MAX(Id) FROM users;""")
-        connection.execute(f"""ALTER TABLE USERS AUTO_INCREMENT={max_id};""")
+        print(engine.connect().execute(f"""DELETE FROM users WHERE username = '{user}';"""))
+        max_id = engine.connect().execute(f"""SELECT MAX(Id) FROM users;""").fetchone()[0]
+        if max_id is not None:
+
+            engine.connect().execute(f"""ALTER TABLE USERS AUTO_INCREMENT={max_id};""")
+        else:
+            engine.connect().execute(f"""ALTER TABLE USERS AUTO_INCREMENT=1;""")
         return {200: "User deleted!"}
     else:
-        print(username)
-        connection.execute(f"""DELETE FROM users WHERE username = '{username}';""")
-        max_id = connection.execute(f"""SELECT MAX(Id) FROM users;""")
-        connection.execute(f"""ALTER TABLE USERS AUTO_INCREMENT={max_id};""")
+        engine.connect().execute(f"""DELETE FROM users WHERE username = '{username}';""")
+        max_id = engine.connect().execute(f"""SELECT MAX(Id) FROM users;""").fetchone()[0]
+        if max_id is not None:
+
+            engine.connect().execute(f"""ALTER TABLE USERS AUTO_INCREMENT={max_id};""")
+        else:
+            engine.connect().execute(f"""ALTER TABLE USERS AUTO_INCREMENT=1;""")
+        engine.connect().execute(f"""ALTER TABLE USERS AUTO_INCREMENT=1;""")
         return {200: "User deleted!"}
 
 
 if __name__ == '__main__':
-    # create_tables("trading_bot", "users")
-    # print(add_user("Shantha", "Krishnamurthy", "AKASDWASDASDASD", "ASWQROQW11232345", "shanthahurali", "ASDDWEQ124FDGHTSAWQWERTY"))
-    print(update_user("Shantha", "Krishnamurthy", "123455ADAWRWR", "ASDA1324531", "", "ASDTWERTEWTWET123123123123"))
-    # print(get_credentials(username="Shantha Krishnamurthy"))
-    # print(delete_user(user="Shantha Krishnamurthy"))
+    print(add_user("Vishal", "Nadig", "78fe2cc056e2d40832f2e6909436df9ed5a1e2d64066bb40", "4340ed6c472cf4a6c3aad826c3ac2999891112d71d125c69325c86596d5635b6", "nadigvishal", "EVOCSKCMCF7WW6JW"))
+    print(get_credentials("Vishal Nadig"))
+    print(update_user(first_name="Vishal", last_name="Nadig", api_key="123455ADAWRWR", secret_key="ASDA1324531", email="nadigvishal", google_auth_key="ASDTWERTEWTWET123123123123"))
+    print(delete_user(username="Vishal Nadig"))
+    print(add_user("Vishal", "Nadig", "78fe2cc056e2d40832f2e6909436df9ed5a1e2d64066bb40", "4340ed6c472cf4a6c3aad826c3ac2999891112d71d125c69325c86596d5635b6", "nadigvishal", "EVOCSKCMCF7WW6JW"))
+    print(get_credentials("Vishal Nadig"))
 
-
-# SELECT `AUTO_INCREMENT`
+#  SELECT `AUTO_INCREMENT`
 # FROM  INFORMATION_SCHEMA.TABLES
 # WHERE TABLE_SCHEMA = 'trading_bot'
 # AND   TABLE_NAME   = 'users';
