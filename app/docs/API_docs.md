@@ -2,7 +2,7 @@
 
 # ENDPOINTS
 
-## BASE URL: https://192.168.0.207:6969
+## BASE URL: https://192.168.0.82:6969
 
 
  ## /GET /trading_bot/get_keys"
@@ -183,7 +183,7 @@
     coin_1: Coin to get the
     coin_2: The base currency.
     price: The price at which you want the alert.
-    mail: Flag to sen the mail or not.
+    mail: Flag to send the mail or not.
     receiver: The reciever email ID.
 
 

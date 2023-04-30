@@ -8,8 +8,10 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import pandas as pd
 import matplotlib.pyplot as plt
+import paths
 
-with open(r"/home/megamind/megamind_config.yaml", "r") as file:
+
+with open(paths.CONFIG_FILE, "r") as file:
     CONFIG = yaml.safe_load(file)
 
 router = APIRouter()
@@ -156,7 +158,7 @@ def generate_plot(coin_1: str = "BTC", coin_2: str = "USDT", interval: str = "1d
 
 
 @router.get("/trading_bot/plot_historical_data", tags=["trading_bot"])
-def plot_historical_data(response: Response, coin_1: str = "BTC", coin_2: str = "USDT", interval: str = "1d", limit: int = 100):
+def plot_historical_data(coin_1: str = "BTC", coin_2: str = "USDT", interval: str = "1d", limit: int = 100):
     return Response(content=generate_plot(coin_1=coin_1, coin_2=coin_2, interval=interval, limit=limit), media_type="image/png")
 
 

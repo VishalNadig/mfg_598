@@ -222,3 +222,8 @@ if __name__ == '__main__':
     # print(add_user("Vishal", "Nadig", "78fe2cc056e2d40832f2e6909436df9ed5a1e2d64066bb40", "4340ed6c472cf4a6c3aad826c3ac2999891112d71d125c69325c86596d5635b6", "nadigvishal", "EVOCSKCMCF7WW6JW"))
 
 
+
+#  SELECT `AUTO_INCREMENT`
+# FROM  INFORMATION_SCHEMA.TABLES
+# WHERE TABLE_SCHEMA = 'trading_bot'
+# AND   TABLE_NAME   = 'users';
