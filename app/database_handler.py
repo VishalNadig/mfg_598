@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine, MetaData
 import yaml
 from cryptography.fernet import Fernet
+import paths
 
-CONFIG_FILE = r"/home/megamind/megamind_config.yaml"
+
+CONFIG_FILE = paths.CONFIG_FILE
 
 with open(CONFIG_FILE, "r") as file:
     CONFIG = yaml.safe_load(file)
