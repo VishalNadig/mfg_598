@@ -1,11 +1,7 @@
 sqlalchemy
 argparse
-csv
-hashlib
-hmac
 pandas
 requests
-yaml
 matplotlib
 tradingview_ta
 fastapi
