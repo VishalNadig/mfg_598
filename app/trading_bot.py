@@ -1006,6 +1006,11 @@ def buy_sell_recommendation(coin_1: str = "", coin_2: str = "", market: str = "B
     #         indicator = indicator_data(coin_1=coin, coin_2=coin_2, market=market, screener_name=screener_name, interval=interval)
     #         print(coin_1, indicator['RSI'])
 
+
+def candle_plot(coin_1: str = "BTC", coin_2: str = "USDT", interval: str = "4h", limit: str = 100):
+    candle_data = get_candles(coin_1=coin_1, coin_2=coin_2, interval=interval, limit=limit)
+
+
 if __name__ == "__main__":
     print(get_ticker(coin_1="OCT"))
     # buy_sell_recommendation(all_coins=True, coin_2="USDT")
