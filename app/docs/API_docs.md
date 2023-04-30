@@ -122,6 +122,14 @@
     ids: The order id to cancel.
 
 
+## /GET /trading_bot/bot_trader
+
+    user: Username of the user. Optional.
+    coin_1: Coin to place the market sell order.
+    coin_2: The base currency.
+    market: The exchange to trade in.
+    screener_name: The stock market to trade in. Defaults to "Crypto".
+    interval: str = The time interval to take the data for. Defaults to "4h".
 
 ## /GET /trading_bot/cancel_all_orders"
 

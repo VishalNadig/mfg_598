@@ -121,6 +121,17 @@
     """
 
 
+## def bot_trader(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC", coin_2: str = "USDT", market: str = "Binance", screener_name: str = "Crypto", interval: str = "4h") -> None:
+    """Trigger a bot_trader that employes a simple logic to auto trade cryptocurrencies."""
+
+    Args:
+        user (str): = The username of the account for whom the order needs to be cancelled.
+        coin1 (str): Symbol of coin1 (BTC, XRP, SHIB, DOGE, ADA)
+        coin2 (str): Symbol of coin2 (BTC, USDT).
+        market (str): he name of the exchange ("NSE", "BSE", "Binance").
+        screener_name (str): Either "India" or "Crypto".
+        interval (str): Interval of chart "1m", "5m", "30m", "1h", "2h", "4h", "1d", "1W", "1M"
+
 ## cancel_all_orders(user: str) -> None:
     """Cancel all the active orders of the user.
 
@@ -152,7 +163,7 @@
         symbol (str): Ticker Ex: "CIPLA", "TATAMOTORS", "XVGBTC", "BTCUSDT".
         market (str): he name of the exchange ("NSE", "BSE", "Binance").
         screener_name (str): Either "India" or "Crypto".
-        interval (str): Interval of chart "1m", "5m", "30m", "1h", "2h", "4h", "1d", "1W", "1M
+        interval (str): Interval of chart "1m", "5m", "30m", "1h", "2h", "4h", "1d", "1W", "1M"
     """
 ## get_account_balance(user: str = "VishalNadig") -> dict:
     """Get the account balance of the user.
