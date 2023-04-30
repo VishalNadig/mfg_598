@@ -32,9 +32,6 @@ INTERVAL_DICT = constants.INTERVAL_DICT
 URL_DICT = constants.URL_DICT
 REMOVE_CURRENCIES = constants.REMOVE_CURRENCIES
 
-# HISTORY_COLS = ["market", "last_price", "quantity", "type", "side", "timestamp", 'order_id']
-# history_file = pd.DataFrame(columns=HISTORY_COLS)
-# history_file.to_csv(ORDER_HISTORY_FILE, mode="w")
 
 logging.basicConfig(
     level=logging.INFO,
