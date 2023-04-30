@@ -4,9 +4,6 @@ import database_handler
 import yaml
 from fastapi import Response
 import io
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
-import pandas as pd
 import matplotlib.pyplot as plt
 import paths
 
