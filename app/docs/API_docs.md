@@ -2,7 +2,7 @@
 
 # ENDPOINTS
 
-## BASE URL: https://192.168.0.207:6969
+## BASE URL: https://192.168.0.82:6969
 
 
  ## /GET /trading_bot/get_keys"
