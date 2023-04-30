@@ -24,5 +24,5 @@ def welcome():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app=app, host="192.168.0.207", port=6969)
+    uvicorn.run(app=app, host="100.119.183.125", port=6969)
     pass

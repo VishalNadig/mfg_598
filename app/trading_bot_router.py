@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 import pandas as pd
 import matplotlib.pyplot as plt
 
-with open(r"C:\Users\nadig\Arizona State University\Spring 2023\MFG 598 Engineering Computing With Python\mfg598\mfg_598\megamind_config.yaml", "r") as file:
+with open(r"/home/megamind/megamind_config.yaml", "r") as file:
     CONFIG = yaml.safe_load(file)
 
 router = APIRouter()
@@ -50,13 +50,13 @@ def delete_keys(first_name: str, last_name: str, user: str):
 
 
 @router.get("/trading_bot/get_ticker", tags=["trading_bot"])
-def get_ticker(coin_1: str = "BTC", coin_2: str = "USDT", coins_list: list = []):
-    return trading_bot.get_ticker(coin_1, coin_2, coins_list)
+def get_ticker(coin_1: str = "BTC", coin_2: str = "USDT"):
+    return trading_bot.get_ticker(coin_1, coin_2)
 
 
 @router.get("/trading_bot/market_details", tags=["trading_bot"])
-def get_markets_details(coin_1: str = "", coin_2: str = "", coins_list: list = [], all_coins: bool = False):
-    return trading_bot.get_markets_details(coin_1=coin_1, coin_2=coin_2, coins_list=coins_list, all_coins=all_coins)
+def get_markets_details(coin_1: str = "BTC", coin_2: str = "USDT"):
+    return trading_bot.get_markets_details(coin_1=coin_1, coin_2=coin_2)
 
 
 @router.get("/trading_bot/place_buy_limit_order", tags=["trading_bot"])
@@ -107,6 +107,11 @@ def cancel_all_orders(user: str = CONFIG['Owner']['alt_username']):
 @router.get("/trading_bot/cancel_multiple_by_ids", tags=["trading_bot"])
 def cancel_multiple_by_ids(user: str = CONFIG['Owner']['alt_username'], ids: list = []):
     return trading_bot.cancel_multiple_by_ids(user=user, ids=ids)
+
+
+@router.get("/trading_bot/bot_trader", tags=["trading_bot"])
+def auto_trader(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC", coin_2: str = "USDT", market: str = "Binance", screener_name: str = "Crypto", interval: str = "4h"):
+    return trading_bot.bot_trader(user = user, coin_1 = coin_1, coin_2 = coin_2, market = market, screener_name=screener_name, interval=interval)
 
 
 @router.get("/trading_bot/edit_price_of_orders", tags=["trading_bot"])

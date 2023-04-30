@@ -6,7 +6,7 @@ import hmac
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import smtplib
 import pandas as pd
 import requests
@@ -138,7 +138,7 @@ def delete_keys(first_name: str, last_name: str, user: str):
     user = user.replace(" ", "")
 
 
-def get_ticker(coin_1: str = "BTC", coin_2: str = "USDT", coins_list: list = []) -> dict:
+def get_ticker(coin_1: str = "BTC", coin_2: str = "USDT") -> dict:
     """Get the ticker details of the coin
 
     Args:
@@ -152,18 +152,11 @@ def get_ticker(coin_1: str = "BTC", coin_2: str = "USDT", coins_list: list = [])
     response = requests.get(url)
     data = response.json()
     coins_dictionary = {}
-    if len(coins_list) == 0:
-        for coins in data:
-            if coins['market'] == coin_1+coin_2:
-                coins['unix_timestamp'] = coins['timestamp']
-                coins['timestamp'] = datetime.fromtimestamp(coins['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
-                return coins
-    else:
-        for coin in coins_list:
-            for coins in data:
-                if coins['symbol'] == coin+"USDT":
-                    coins_dictionary[coins['symbol']] = coins
-        return coins_dictionary
+    for coins in data:
+        if coins['market'] == coin_1+coin_2:
+            coins['unix_timestamp'] = coins['timestamp']
+            coins['timestamp'] = datetime.fromtimestamp(coins['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+            return coins
 
 
 def get_markets_details(coin_1: str = "", coin_2: str = "", coins_list: list = [], all_coins: bool = False) -> dict:
@@ -692,65 +685,66 @@ def bot_trader(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC",
             indicator_data_["Pivot.M.Fibonacci.R2"],
             indicator_data_["Pivot.M.Fibonacci.R3"],
         ]
-        # data_frame = pd.DataFrame.from_dict(data)
-        # data_frame = data_frame.sort_values("market")
-        # # data_frame = data_frame[columns]
-        # data_frame["timestamp"] = pd.to_datetime(data_frame["timestamp"], unit="s") + timedelta(
-        #     hours=5, minutes=30
-        # )
-        # for currency in REMOVE_CURRENCIES:
-        #     data_frame = data_frame[~data_frame.market.str.endswith(currency)]
-        # data_frame = data_frame.reset_index(drop=True)
-        # data_frame = data_frame.sort_index(ascending=True, axis=0)
+        data_frame = pd.DataFrame.from_dict(data)
+        data_frame = data_frame.sort_values("market")
+        # data_frame = data_frame[columns]
+        data_frame["timestamp"] = pd.to_datetime(data_frame["timestamp"], unit="s") + timedelta(
+            hours=5, minutes=30
+        )
+        for currency in REMOVE_CURRENCIES:
+            data_frame = data_frame[~data_frame.market.str.endswith(currency)]
+        data_frame = data_frame.reset_index(drop=True)
+        data_frame = data_frame.sort_index(ascending=True, axis=0)
         current_price = get_ticker(coin_1=coin_1,coin_2=coin_2)['last_price']
         # SET BUY PRICE, SELL PRICE AND STOP LOSS CONDITIONS
-        # if current_price < pivot and current_price > supports[0] and current_price < close_price:
-        #     buy_price = supports[0]
-        #     stop_loss = supports[0] - int(0.01 * buy_price)
-        #     sell_price = pivot
-        # elif (
-        #     current_price < supports[0]
-        #     and current_price > supports[1]
-        #     and current_price < close_price
-        # ):
-        #     buy_price = supports[1]
-        #     stop_loss = supports[1] - int(0.01 * buy_price)
-        #     sell_price = supports[0]
-        # elif (
-        #     current_price < supports[1]
-        #     and current_price > supports[2]
-        #     and current_price < close_price
-        # ):
-        #     buy_price = supports[2]
-        #     stop_loss = supports[2] - int(0.01 * buy_price)
-        #     sell_price = supports[1]
-        # elif current_price < supports[2]:
-        #     pass
-        # order_size = 0.33 * account_balance
-        # if (  # BUY CONDITIONS
-        #     float(current_price) == buy_price and not open_position and order_size > min_order_value
-        # ) or (rsi < 37 and not open_position and order_size > min_order_value):
-        #     place_buy_limit_order(
-        #         user=user, market=market, price=buy_price, total_quantity=order_size
-        #     )
-        #     logging.info(
-        #         f"Buy Order placed! for {coin_1+coin_2} at price {buy_price}. Stop loss is {stop_loss}"
-        #     )
-        #     open_position = True
-        # if (  # SELL CONDITIONS
-        #     (float(current_price) == sell_price and open_position)
-        #     or float(current_price) == stop_loss
-        #     or (rsi > 60 and open_position)
-        # ):
-        #     place_sell_limit_order(
-        #         user=user, market=market, price=sell_price, total_quantity=order_size
-        #     )
-        #     logging.info(f"Sold {market} for: {sell_price}")
-        #     logging.info(f"The current account balance is: {account_balance} BTC")
-        #     open_position = False
-        #     no_of_trades += 1
-        #     profit = ((sell_price - buy_price) / buy_price) * (100)
-        #     logging.info(f"made {profit}% profits!")
+        if current_price < pivot and current_price > supports[0] and current_price < close_price:
+            buy_price = supports[0]
+            stop_loss = supports[0] - int(0.01 * buy_price)
+            sell_price = pivot
+        elif (
+            current_price < supports[0]
+            and current_price > supports[1]
+            and current_price < close_price
+        ):
+            buy_price = supports[1]
+            stop_loss = supports[1] - int(0.01 * buy_price)
+            sell_price = supports[0]
+        elif (
+            current_price < supports[1]
+            and current_price > supports[2]
+            and current_price < close_price
+        ):
+            buy_price = supports[2]
+            stop_loss = supports[2] - int(0.01 * buy_price)
+            sell_price = supports[1]
+        elif current_price < supports[2]:
+            pass
+        order_size = 0.33 * account_balance
+        if (  # BUY CONDITIONS
+            float(current_price) == buy_price and not open_position and order_size > min_order_value
+        ) or (rsi < 37 and not open_position and order_size > min_order_value):
+            place_buy_limit_order(
+                user=user, market=market, price=buy_price, total_quantity=order_size
+            )
+            logging.info(
+                f"Buy Order placed! for {coin_1+coin_2} at price {buy_price}. Stop loss is {stop_loss}"
+            )
+            open_position = True
+        if (  # SELL CONDITIONS
+            (float(current_price) == sell_price and open_position)
+            or float(current_price) == stop_loss
+            or (rsi > 60 and open_position)
+        ):
+            place_sell_limit_order(
+                user=user, price=sell_price, total_quantity=order_size
+            )
+            logging.info(f"Sold {market} for: {sell_price}")
+            logging.info(f"The current account balance is: {account_balance} BTC")
+            open_position = False
+            no_of_trades += 1
+            profit = ((sell_price - buy_price) / buy_price) * (100)
+            logging.info(f"made {profit}% profits!")
+            send_mail(f"Sold {coin_2} for {profit}% profits!")
 
 
 def get_account_balance(user: str = CONFIG['Owner']['alt_username']) -> dict:
@@ -866,6 +860,11 @@ def auto_trader(user: str = CONFIG['Owner']['alt_username']):
                 and float(coins_currently_held[coins]["Balance"]) > 1.0
             ):
                 print(coins)
+                indi_data = indicator_data(coin_1=coins)
+                print(indi_data['RSI'])
+                if indi_data['RSI'] > 70:
+                    print(f"Selling {coins}")
+                    send_mail(f"Sold {coins}", receiver="nadigvishal@gmail.com")
 
 
 def parser_activated_bot() -> None:
