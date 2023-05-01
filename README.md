@@ -2,6 +2,8 @@
 
 This project is Cryptocurrency Trading bot I coded using python for a project for my Graduate degree course in MFG 598 - Engineering Computing with Python at Arizona State University.
 
+The entire project is hosted on my Raspberry Pi 4 called megamind. This allows me to run the code 24/7 very efficiently and also access it remotely using a Tailscale VPN.
+
 # TRADING BOT DOCUMENTATION
 
 # GENERAL INFORMATION
