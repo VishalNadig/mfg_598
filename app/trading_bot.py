@@ -238,7 +238,7 @@ def place_buy_limit_order(user: str = CONFIG['Owner']['alt_username'], coin_1: s
     return data
 
 
-def place_sell_limit_order(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC", coin_2: str = "USDT", price: float = 0.25, total_quantity: float = 450.0) -> None:
+def place_sell_limit_order(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC", coin_2: str = "USDT", price: float = 0.25, total_quantity: float = 450) -> None:
     """Place a buy limit order on the market pair specified.
 
     Args:
@@ -303,7 +303,7 @@ def place_market_buy_order(user: str = CONFIG['Owner']['alt_username'], coin_1: 
         "side": "buy",  # Toggle between 'buy' or 'sell'.
         "order_type": "market_order",  # Toggle between a 'market_order' or 'limit_order'.
         "market": f"{coin_1+coin_2}",  # Replace 'SNTBTC' with your desired market pair.
-        "total_quantity": 450,  # Replace this with the quantity you want
+        "total_quantity": total_quantity,  # Replace this with the quantity you want
         "timestamp": time_stamp,
     }
     json_body = json.dumps(body, separators=(",", ":"))
@@ -333,7 +333,7 @@ def place_market_buy_order(user: str = CONFIG['Owner']['alt_username'], coin_1: 
         logging.info("Written to file")
     return data
 
-def place_market_sell_order(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC", coin_2: str = "USDT", total_quantity: float = 450.0) -> None:
+def place_market_sell_order(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC", coin_2: str = "USDT", total_quantity: float = 450) -> None:
     """Place a sell market order on the market pair specified. The order is placed at the current market price. This order gets executed immediately.
 
     Args:
