@@ -235,6 +235,7 @@ def place_buy_limit_order(user: str = CONFIG['Owner']['alt_username'], coin_1: s
         )
     logging.info("Written to order history file!")
     file.close()
+    return data
 
 
 def place_sell_limit_order(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC", coin_2: str = "USDT", price: float = 0.25, total_quantity: float = 450.0) -> None:
@@ -246,12 +247,10 @@ def place_sell_limit_order(user: str = CONFIG['Owner']['alt_username'], coin_1: 
         price (float): The price at which to sell.
         total_quantity (float): The number of stocks or coins to sell.
     """
-    # TODO: Find a way to make the price argument to be dynamic for the coins
+
     secret_bytes = bytes(get_keys(user=user)[1], encoding="utf-8")
     time_stamp = int(round(time.time() * 1000))
-    # message = (
-    #     f"Sell order of {total_quantity} for market {market} placed at {price} price"
-    # )
+
     body = {
         "side": "sell",  # Toggle between 'buy' or 'sell'.
         "order_type": "limit_order",  # Toggle between a 'market_order' or 'limit_order'.
@@ -296,7 +295,7 @@ def place_market_buy_order(user: str = CONFIG['Owner']['alt_username'], coin_1: 
         market (str): The market pair to place the order. Eg: BTCUSDT, TATAINR.
         total_quantity (float): The number of stocks or coins to buy.
     """
-    # TODO: Find a way to get the total quantity to sell for each coin dynamically.
+
     secret_bytes = bytes(get_keys(user=user)[1], encoding="utf-8")
     time_stamp = int(round(time.time() * 1000))
 
@@ -318,24 +317,21 @@ def place_market_buy_order(user: str = CONFIG['Owner']['alt_username'], coin_1: 
     }
     response = requests.post(URL_DICT["NEW_ORDER_URL"], data=json_body, headers=headers)
     data = response.json()
-    if data['status'] == 'error':
-        logging.info(data)
-        return {404: data}
-    else:
-        with open(ORDER_HISTORY_FILE, "a", newline="") as file:
-            csvwrite = csv.writer(file, dialect="excel")
-            csvwrite.writerow(
-            [
-                "",
-                coin_1+coin_2,
-                total_quantity,
-                "market_order",
-                "buy",
-                TODAY,
-            ]
-        )
-            logging.info("Written to file")
 
+    with open(ORDER_HISTORY_FILE, "a", newline="") as file:
+        csvwrite = csv.writer(file, dialect="excel")
+        csvwrite.writerow(
+        [
+            "",
+            coin_1+coin_2,
+            total_quantity,
+            "market_order",
+            "buy",
+            TODAY,
+        ]
+    )
+        logging.info("Written to file")
+    return data
 
 def place_market_sell_order(user: str = CONFIG['Owner']['alt_username'], coin_1: str = "BTC", coin_2: str = "USDT", total_quantity: float = 450.0) -> None:
     """Place a sell market order on the market pair specified. The order is placed at the current market price. This order gets executed immediately.
@@ -345,7 +341,7 @@ def place_market_sell_order(user: str = CONFIG['Owner']['alt_username'], coin_1:
         market (str): The market pair to place the order. Eg: BTCUSDT, TATAINR.
         total_quantity (float): The number of stocks or coins to buy.
     """
-    # TODO: Find a way to get the total quantity to sell for each coin dynamically.
+
 
     secret_bytes = bytes(get_keys(user=user)[1], encoding="utf-8")
     time_stamp = int(round(time.time() * 1000))
@@ -384,7 +380,7 @@ def place_market_sell_order(user: str = CONFIG['Owner']['alt_username'], coin_1:
         )
     logging.info("Written to order history file!")
     file.close()
-
+    return data
 
 def create_multiple_orders(user: str = CONFIG['Owner']['alt_username'], orders: list = []) -> None:
     """Create multiple orders at once.
@@ -970,37 +966,16 @@ def price_tracker(coin_1: str = "BTC", coin_2: str = "USDT", price: float = 0.0,
                 return message
 
 
-def buy_sell_recommendation(coin_1: str = "", coin_2: str = "", market: str = "Binance", screener_name: str = "Crypto", interval: str = "4h", all_coins: bool = False):
-    market_set  = set()
+def buy_sell_recommendation(coin_1: str = "BTC", coin_2: str = "USDT", market: str = "Binance", screener_name: str = "Crypto", interval: str = "4h"):
     try:
-        if coin_1 == "":
-            for coin in get_markets_details(all_coins= all_coins):
-                if "INR" not in coin['symbol'] and "BTC" not in coin['symbol'] and "BNB" not in coin['symbol'] and "ETH" not in coin['symbol'] and "BUSD" not in coin['symbol'] and "USDC" not in coin['symbol']:
-                    print(coin['symbol'], coin['ecode'], constants.MARKETS[coin['ecode']])
-                    # print(indicator_data(coin_1=coin['coindcx_name'], market= constants.MARKETS[coin['ecode']])['RSI'])
-                # market_set.add((coin['ecode']))
-                # if coin['ecode'] == 'B':
-                #     print(coin['ecode'], coin['coindcx_name'], coin['ecode'], coin['pair'])
-                #     print(coin['coindcx_name'], constants.MARKETS[coin['ecode']])
-                #     print(indicator_data(coin_1=coin['coindcx_name'], market= constants.MARKETS[coin['ecode']])['RSI'])
-                # elif coin['ecode'] == 'H':
-                #     print(coin['ecode'], coin['coindcx_name'], coin['ecode'], coin['pair'])
-                # #     print(coin, indicator_data(coin_1=coin['coindcx_name'], market='Huobi')['RSI'])
-                # elif coin['ecode'] == 'I':
-                #     pass
-                # elif coin['ecode'] == 'KC':
-                #     print(coin['ecode'], coin['coindcx_name'], coin['ecode'], coin['pair'])
-                # #     print(coin, indicator_data(coin_1=coin['coindcx_name'], market='Kucoin')['RSI'])
-                # else:
-                #     pass
-            else:
-                print(indicator_data(coin_1=coin_1, coin_2 = coin_2, market=market, screener_name=screener_name, interval=interval))
-    # if coin_1 == "":
+        indicator = indicator_data(coin_1=coin_1, coin_2 = coin_2, market=market, screener_name=screener_name, interval=interval)
+        if indicator['RSI'] > 70:
+            return {200: f"The RSI value of {coin_1} is over 70 and hence is in a strong SELL zone."}
+        elif indicator['RSI'] < 30:
+            return {200: f"The RSI value of {coin_1} is less than 30 and hence is in a BUY zone."}
+
     except Exception:
         pass
-    #     for coin in get_ticker():
-    #         indicator = indicator_data(coin_1=coin, coin_2=coin_2, market=market, screener_name=screener_name, interval=interval)
-    #         print(coin_1, indicator['RSI'])
 
 
 def candle_plot(coin_1: str = "BTC", coin_2: str = "USDT", interval: str = "4h", limit: str = 100):
@@ -1008,11 +983,4 @@ def candle_plot(coin_1: str = "BTC", coin_2: str = "USDT", interval: str = "4h",
 
 
 if __name__ == "__main__":
-    print(get_ticker(coin_1="OCT"))
-    # buy_sell_recommendation(all_coins=True, coin_2="USDT")
-    # TODO: Change the buy and sell recommendations function to give a description of the coin being asked to be recommended.
-    # print(indicator_data(coin_1="OCT", coin_2 = "USDT", market=constants.MARKETS['H']))
-    # price_tracker(coin_1 = "VET", price=0.023)
-    # print(get_account_balance())
-    # place_sell_limit_order(coin_1="XTM", total_quantity=450, price=0.0235)
-    # print(get_candles())
+    pass
