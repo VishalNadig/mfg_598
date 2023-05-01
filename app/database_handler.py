@@ -217,15 +217,4 @@ def delete_user(username: str = "", first_name: str = "", last_name: str = "") -
 
 if __name__ == '__main__':
     pass
-    # print(add_user("Vishal", "Nadig", "78fe2cc056e2d40832f2e6909436df9ed5a1e2d64066bb40", "4340ed6c472cf4a6c3aad826c3ac2999891112d71d125c69325c86596d5635b6", "nadigvishal", "EVOCSKCMCF7WW6JW"))
-    # print(get_credentials("Vishal Nadig"))
-    # print(update_user(first_name="Vishal", last_name="Nadig", api_key="123455ADAWRWR", secret_key="ASDA1324531", email="nadigvishal", google_auth_key="ASDTWERTEWTWET123123123123"))
-    # print(delete_user(username="Vishal Nadig"))
-    # print(add_user("Vishal", "Nadig", "78fe2cc056e2d40832f2e6909436df9ed5a1e2d64066bb40", "4340ed6c472cf4a6c3aad826c3ac2999891112d71d125c69325c86596d5635b6", "nadigvishal", "EVOCSKCMCF7WW6JW"))
-
-
-
-#  SELECT `AUTO_INCREMENT`
-# FROM  INFORMATION_SCHEMA.TABLES
-# WHERE TABLE_SCHEMA = 'trading_bot'
-# AND   TABLE_NAME   = 'users';
+    
