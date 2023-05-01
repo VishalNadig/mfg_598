@@ -1,6 +1,6 @@
 # Cryptocurrency Trading using FastAPI
 
-This project is Cryptocurrency Trading bot I coded using python for a project in my Graduate degree course on Python.
+This project is Cryptocurrency Trading bot I coded using python for a project for my Graduate degree course in MFG 598 - Engineering Computing with Python at Arizona State University.
 
 # TRADING BOT DOCUMENTATION
 
