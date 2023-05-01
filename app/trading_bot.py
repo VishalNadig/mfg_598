@@ -18,7 +18,6 @@ from tradingview_ta import TA_Handler
 import constants
 import paths
 
-INITIAL_INVESTMENT = constants.INITIAL_INVESTMENT  # In BTC
 PARSER = argparse.ArgumentParser()
 CONFIG_FILE = paths.CONFIG_FILE
 ORDER_HISTORY_FILE = paths.ORDER_HISTORY_FILE
